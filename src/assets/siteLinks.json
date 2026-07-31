@@ -2,14 +2,20 @@
   {
     "icon": "Blog",
     "iconUrl": "",
-    "name": "个人Blog",
-    "link": "https://blog.imbee.top/"
+    "name": "My Blog",
+    "link": "https://blog.imbee.top"
   },
   {
-    "icon": "Server",
+    "icon": "Cloudflare",
     "iconUrl": "",
     "name": "NB优选",
-    "link": "https://www.byoip.top/"
+    "link": "https://www.byoip.top"
+  },
+  {
+    "icon": "Code",
+    "iconUrl": "",
+    "name": "My API",
+    "link": "https://api.mfawa.top"
   },
   {
     "icon": "Compass",
@@ -21,7 +27,7 @@
     "icon": "Fire",
     "iconUrl": "",
     "name": "今日热榜",
-    "link": "https://hot.mfawa.top/"
+    "link": "https://hot.mfawa.top"
   },
   {
     "icon": "LaptopCode",
@@ -33,12 +39,6 @@
     "icon": "Cloud",
     "iconUrl": "",
     "name": "OpenList",
-    "link": "https://file.mfawa.top/"
-  },
-  {
-    "icon": "Toolbox",
-    "iconUrl": "",
-    "name": "工具箱",
-    "link": "https://tools.mfawa.top/"
+    "link": "https://file.mfawa.top"
   }
 ]
