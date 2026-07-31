@@ -53,22 +53,72 @@ export const getHitokoto = async () => {
  * 天气
  */
 
+const isRecord = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
+const isNonEmptyString = (value) => typeof value === "string" && value.trim() !== "";
+const isTemperature = (value) =>
+  (isNonEmptyString(value) && Number.isFinite(Number(value))) || Number.isFinite(value);
+
 // 获取地理位置信息
 export const getAdcode = async () => {
   const res = await fetch(`https://api.songzixian.com/api/ip?dataSource=GLOBAL_IP`);
+  if (!res.ok) {
+    throw new Error("地区请求失败");
+  }
+
   return await res.json();
+};
+
+export const getWeather = async () => {
+  const res = await fetch("https://api.mfawa.top/v1/weather/realtime");
+  if (!res.ok) {
+    throw new Error("MIFENG 天气请求失败");
+  }
+
+  const data = await res.json();
+  const realtime = data?.data?.realtime;
+  if (
+    data?.success !== true ||
+    !isRecord(realtime) ||
+    !isNonEmptyString(realtime.city) ||
+    !isNonEmptyString(realtime.weather) ||
+    !isTemperature(realtime.temperature) ||
+    !isNonEmptyString(realtime.wind) ||
+    !isNonEmptyString(realtime.windSpeed)
+  ) {
+    throw new Error("MIFENG 天气数据无效");
+  }
+
+  return data;
 };
 
 // 获取高德地理天气信息
-export const getWeather = async (key, city) => {
-  const res = await fetch(
-    `https://restapi.amap.com/v3/weather/weatherInfo?key=${key}&city=${city}`,
-  );
-  return await res.json();
-};
+export const getOtherWeather = async (key, city) => {
+  if (!isNonEmptyString(key) || !isNonEmptyString(city)) {
+    throw new Error("高德天气请求参数无效");
+  }
 
-// 获取韩小韩WebAPI接口
-export const getOtherWeather = async () => {
-  const res = await fetch("https://api.vvhan.com/api/weather");
-  return await res.json();
+  const encodedKey = encodeURIComponent(key.trim());
+  const encodedCity = encodeURIComponent(city.trim());
+  const res = await fetch(
+    `https://restapi.amap.com/v3/weather/weatherInfo?key=${encodedKey}&city=${encodedCity}`,
+  );
+  if (!res.ok) {
+    throw new Error("高德天气请求失败");
+  }
+
+  const data = await res.json();
+  const realtime = data?.lives?.[0];
+  if (
+    data?.status !== "1" ||
+    !Array.isArray(data?.lives) ||
+    !isRecord(realtime) ||
+    !isNonEmptyString(realtime.weather) ||
+    !isTemperature(realtime.temperature) ||
+    !isNonEmptyString(realtime.winddirection) ||
+    !isNonEmptyString(realtime.windpower)
+  ) {
+    throw new Error("高德天气数据无效");
+  }
+
+  return data;
 };

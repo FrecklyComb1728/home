@@ -15,12 +15,12 @@
 
 <script setup>
 import { h } from "vue";
-import { Error } from "@icon-park/vue-next";
+import { Error as ErrorIcon } from "@icon-park/vue-next";
 import { ElMessage } from "element-plus";
 import { getAdcode, getWeather, getOtherWeather } from "@/api";
 
 // 高德开发者 Key
-const mainKey = import.meta.env.VITE_WEATHER_KEY;
+const mainKey = import.meta.env.VITE_WEATHER_KEY?.trim();
 
 // 天气数据
 const weatherData = reactive({
@@ -34,54 +34,74 @@ const weatherData = reactive({
   },
 });
 
+const formatMifengWeather = (realtime) => ({
+  city: realtime.city,
+  data: {
+    type: realtime.weather,
+    low: realtime.temperature,
+    high: realtime.temperature,
+    fengxiang: realtime.wind,
+    fengli: realtime.windSpeed,
+  },
+});
+
+const getAmapWeatherData = async () => {
+  const locationData = await getAdcode();
+  const city = locationData?.data?.city;
+  if (locationData?.code !== 200 || typeof city !== "string" || city.trim() === "") {
+    throw new Error("地区查询失败");
+  }
+
+  const normalizedCity = city.trim();
+  const result = await getOtherWeather(mainKey, normalizedCity);
+  const weather = result.lives[0];
+  return {
+    city: normalizedCity,
+    data: {
+      type: weather.weather,
+      low: weather.temperature,
+      high: weather.temperature,
+      fengxiang: weather.winddirection,
+      fengli: weather.windpower,
+    },
+  };
+};
+
+const updateWeatherData = (result) => {
+  weatherData.city = result.city;
+  weatherData.data = result.data;
+};
+
+const clearWeatherData = () => {
+  weatherData.city = null;
+  weatherData.data = {
+    type: null,
+    low: null,
+    high: null,
+    fengxiang: null,
+    fengli: null,
+  };
+};
+
 // 获取天气数据
 const getWeatherData = async () => {
   try {
-    // 使用新的地理位置API
-    const locationData = await getAdcode();
-    if (locationData.code !== 200) {
-      throw "地区查询失败";
-    }
-    weatherData.city = locationData.data.city;
+    const result = await getWeather();
+    updateWeatherData(formatMifengWeather(result.data.realtime));
+  } catch {
+    const weatherRequests = [
+      getWeather().then((result) => formatMifengWeather(result.data.realtime)),
+    ];
+
     if (mainKey) {
-      // 如果配置了高德Key，仍然使用高德天气API
-      const result = await getWeather(mainKey, locationData.data.city);
-      weatherData.data = {
-        type: result.lives[0].weather,
-        low: result.lives[0].temperature,
-        high: result.lives[0].temperature,
-        fengxiang: result.lives[0].winddirection,
-        fengli: result.lives[0].windpower,
-      };
-    } else {
-      // 没有配置高德Key，尝试使用备用API
-      throw "未配置高德Key";
+      weatherRequests.push(getAmapWeatherData());
     }
-  } catch (error) {
+
     try {
-      const result = await getOtherWeather();
-      if (result.success) {
-        weatherData.city = result.city;
-        weatherData.data = {
-          type: result.data.type,
-          low: result.data.low.replace(/[°C]/g, ''),
-          high: result.data.high.replace(/[°C]/g, ''),
-          fengxiang: result.data.fengxiang,
-          fengli: result.data.fengli,
-        };
-      } else {
-        console.warn("天气接口返回失败状态");
-        throw "天气接口失败";
-      }
-    } catch (hanError) {
-      weatherData.city = null;
-      weatherData.data = {
-        type: null,
-        low: null,
-        high: null,
-        fengxiang: null,
-        fengli: null,
-      };
+      const result = await Promise.any(weatherRequests);
+      updateWeatherData(result);
+    } catch {
+      clearWeatherData();
       onError("天气信息获取失败");
     }
   }
@@ -91,7 +111,7 @@ const getWeatherData = async () => {
 const onError = (message) => {
   ElMessage({
     message,
-    icon: h(Error, {
+    icon: h(ErrorIcon, {
       theme: "filled",
       fill: "#efefef",
     }),
